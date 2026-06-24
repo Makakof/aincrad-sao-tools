@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gerador de Missão — Aincrad RPG</title>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
+
+:root {
+  --blue: #35b8ff;
+  --blue-light: #aee8ff;
+  --cyan: #00d9ff;
+  --white: #eefaff;
+  --gold: #ffd84d;
+  --red: #ff4e5f;
+  --panel: rgba(4, 18, 34, .96);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #02050c;
+  color: var(--white);
+  font-family: "Rajdhani", "Segoe UI", sans-serif;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  min-height: 100vh;
+}
+
+.controls {
+  background: #06101f;
+  border-right: 1px solid rgba(53,184,255,.45);
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.controls h1 {
+  margin: 0 0 12px;
+  color: var(--blue-light);
+  font-size: 25px;
+  letter-spacing: 1px;
+}
+
+.controls label {
+  display: block;
+  margin-top: 12px;
+  color: var(--blue);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.controls input,
+.controls textarea,
+.controls select {
+  width: 100%;
+  margin-top: 4px;
+  background: #0b1b31;
+  color: var(--white);
+  border: 1px solid rgba(53,184,255,.55);
+  border-radius: 6px;
+  padding: 9px;
+  font-family: inherit;
+  font-size: 17px;
+  outline: none;
+}
+
+.controls textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+button {
+  background: linear-gradient(180deg, #123c67, #071a30);
+  color: var(--white);
+  border: 1px solid var(--blue);
+  border-radius: 7px;
+  padding: 11px;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(53,184,255,.25);
+}
+
+button:hover {
+  box-shadow: 0 0 18px rgba(53,184,255,.75);
+}
+
+.preview-area {
+  min-width: 0;
+  padding: 30px;
+  overflow: auto;
+  background:
+    radial-gradient(circle at center, rgba(15,65,110,.55), rgba(0,0,0,.98) 72%),
+    linear-gradient(135deg, #02050c, #07111d);
+}
+
+.quest-window {
+  width: 1180px;
+  min-height: 820px;
+  position: relative;
+  padding: 52px 78px 42px;
+  background:
+    linear-gradient(rgba(4,22,43,.94), rgba(2,15,31,.97)),
+    repeating-linear-gradient(
+      90deg,
+      rgba(53,184,255,.025) 0,
+      rgba(53,184,255,.025) 1px,
+      transparent 1px,
+      transparent 8px
+    );
+  border: 2px solid var(--blue-light);
+  box-shadow:
+    0 0 18px rgba(53,184,255,.9),
+    0 0 46px rgba(0,110,255,.55),
+    inset 0 0 38px rgba(25,155,255,.26);
+  overflow: hidden;
+}
+
+.quest-window::before,
+.quest-window::after {
+  content: "";
+  position: absolute;
+  inset: 18px;
+  border: 1px solid rgba(53,184,255,.45);
+  pointer-events: none;
+}
+
+.scanlines {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      transparent 0%,
+      rgba(90,210,255,.05) 50%,
+      transparent 100%
+    );
+  background-size: 100% 7px;
+  opacity: .45;
+  pointer-events: none;
+}
+
+.corner {
+  position: absolute;
+  width: 115px;
+  height: 115px;
+  border-color: var(--blue-light);
+  filter: drop-shadow(0 0 7px var(--blue));
+}
+
+.corner.tl {
+  top: 12px;
+  left: 12px;
+  border-top: 7px double;
+  border-left: 7px double;
+}
+
+.corner.tr {
+  top: 12px;
+  right: 12px;
+  border-top: 7px double;
+  border-right: 7px double;
+}
+
+.corner.bl {
+  bottom: 12px;
+  left: 12px;
+  border-bottom: 7px double;
+  border-left: 7px double;
+}
+
+.corner.br {
+  bottom: 12px;
+  right: 12px;
+  border-bottom: 7px double;
+  border-right: 7px double;
+}
+
+.top-line,
+.bottom-line {
+  position: absolute;
+  left: 150px;
+  right: 150px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  box-shadow: 0 0 12px var(--blue);
+}
+
+.top-line {
+  top: 30px;
+}
+
+.bottom-line {
+  bottom: 30px;
+}
+
+.diamond {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  width: 48px;
+  height: 48px;
+  transform: translateX(-50%) rotate(45deg);
+  border: 6px solid var(--blue-light);
+  box-shadow: 0 0 18px var(--blue);
+  background: rgba(0,153,255,.18);
+}
+
+.diamond::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border: 4px solid var(--blue-light);
+}
+
+.close-box {
+  position: absolute;
+  top: 63px;
+  right: 76px;
+  width: 72px;
+  height: 72px;
+  transform: rotate(45deg);
+  border: 2px solid var(--blue);
+  box-shadow: 0 0 16px rgba(53,184,255,.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.close-box span {
+  transform: rotate(-45deg);
+  font-size: 58px;
+  line-height: 1;
+  color: var(--white);
+  text-shadow: 0 0 12px var(--blue);
+}
+
+.header {
+  text-align: center;
+  margin-top: 6px;
+  position: relative;
+  z-index: 2;
+}
+
+.status {
+  font-size: 48px;
+  letter-spacing: 7px;
+  font-weight: 700;
+  color: var(--white);
+  text-shadow:
+    0 0 8px var(--blue-light),
+    0 0 18px var(--blue);
+}
+
+.ornament {
+  margin: 18px auto;
+  height: 20px;
+  width: 86%;
+  position: relative;
+}
+
+.ornament::before {
+  content: "";
+  position: absolute;
+  top: 9px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(174,232,255,.8), transparent);
+  box-shadow: 0 0 8px var(--blue);
+}
+
+.ornament::after {
+  content: "◇";
+  position: absolute;
+  left: 50%;
+  top: -10px;
+  transform: translateX(-50%);
+  color: var(--blue-light);
+  font-size: 30px;
+  text-shadow: 0 0 10px var(--blue);
+}
+
+.quest-title {
+  font-size: 50px;
+  font-weight: 600;
+  color: var(--white);
+  text-shadow:
+    0 0 10px var(--blue-light),
+    0 0 22px var(--blue);
+  margin-bottom: 24px;
+}
+
+.table {
+  margin: 0 auto;
+  width: 92%;
+  border-left: 1px solid rgba(53,184,255,.38);
+  border-right: 1px solid rgba(53,184,255,.38);
+  position: relative;
+  z-index: 2;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 70px 300px 1fr 120px;
+  align-items: start;
+  min-height: 64px;
+  border-top: 1px solid rgba(53,184,255,.42);
+  position: relative;
+  padding: 15px 14px;
+}
+
+.row:last-child {
+  border-bottom: 1px solid rgba(53,184,255,.42);
+}
+
+.row::before,
+.row::after {
+  content: "◇";
+  position: absolute;
+  top: -13px;
+  color: rgba(53,184,255,.8);
+  font-size: 20px;
+  text-shadow: 0 0 8px var(--blue);
+}
+
+.row::before {
+  left: -10px;
+}
+
+.row::after {
+  right: -10px;
+}
+
+.icon {
+  color: var(--blue);
+  font-size: 35px;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 0 8px var(--blue);
+}
+
+.label {
+  color: var(--blue);
+  font-size: 31px;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(53,184,255,.6);
+}
+
+.value {
+  font-size: 30px;
+  color: var(--white);
+  line-height: 1.18;
+  text-shadow: 0 0 4px rgba(174,232,255,.45);
+}
+
+.tag {
+  font-size: 30px;
+  color: var(--gold);
+  text-align: right;
+  text-shadow: 0 0 8px rgba(255,216,77,.45);
+}
+
+.gold {
+  color: var(--gold);
+}
+
+.accept {
+  margin: 34px auto 0;
+  width: 76%;
+  text-align: center;
+  position: relative;
+  border-top: 1px solid rgba(53,184,255,.45);
+  padding-top: 24px;
+  z-index: 2;
+}
+
+.accept::before {
+  content: "◇";
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--blue);
+  font-size: 30px;
+  text-shadow: 0 0 12px var(--blue);
+}
+
+.alert-diamond {
+  display: inline-flex;
+  width: 72px;
+  height: 72px;
+  transform: rotate(45deg);
+  border: 3px solid var(--cyan);
+  box-shadow: 0 0 18px var(--blue);
+  justify-content: center;
+  align-items: center;
+  margin-right: 26px;
+  vertical-align: middle;
+}
+
+.alert-diamond span {
+  transform: rotate(-45deg);
+  color: var(--white);
+  font-size: 50px;
+  font-weight: 700;
+  text-shadow: 0 0 12px var(--blue);
+}
+
+.accept-text {
+  display: inline-block;
+  vertical-align: middle;
+  text-align: left;
+}
+
+.accept-title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.accept-options {
+  font-size: 28px;
+  margin-top: 5px;
+}
+
+.yes {
+  color: var(--blue);
+}
+
+.no {
+  color: var(--red);
+  margin-left: 28px;
+}
+
+.hidden {
+  display: none;
+}
+
+@media print {
+  .controls {
+    display: none;
+  }
+
+  .app {
+    display: block;
+  }
+
+  .preview-area {
+    padding: 0;
+    background: #000;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <aside class="controls">
+    <h1>Gerador de Missão</h1>
+
+    <label>Estado do pop-up</label>
+    <select id="estado" onchange="trocarEstado()">
+      <option value="recebida">MISSÃO RECEBIDA</option>
+      <option value="atualizada">MISSÃO ATUALIZADA</option>
+      <option value="concluida">MISSÃO CONCLUÍDA</option>
+      <option value="falhada">MISSÃO FALHADA</option>
+    </select>
+
+    <label>Nome da missão</label>
+    <input id="titulo" value="Limpeza dos Corredores" oninput="atualizarPreview()" />
+
+    <label>Marcador</label>
+    <select id="tag" oninput="atualizarPreview()">
+      <option>Única</option>
+      <option>Repetível</option>
+    </select>
+
+    <div id="campos"></div>
+
+    <label>Texto do rodapé</label>
+    <input id="rodapeTitulo" value="ACEITAR MISSÃO?" oninput="atualizarPreview()" />
+
+    <label>Opção azul</label>
+    <input id="rodapeSim" value="[Y] SIM" oninput="atualizarPreview()" />
+
+    <label>Opção vermelha</label>
+    <input id="rodapeNao" value="[N] NÃO" oninput="atualizarPreview()" />
+
+    <label>Qualidade da imagem</label>
+    <select id="qualidade">
+      <option value="1">PNG normal</option>
+      <option value="2" selected>PNG alta qualidade</option>
+      <option value="3">PNG ultra qualidade</option>
+    </select>
+
+    <div class="buttons">
+      <button onclick="baixarPNG()">Baixar PNG</button>
+      <button onclick="copiarTexto()">Copiar texto</button>
+      <button onclick="window.print()">Salvar como PDF</button>
+      <button onclick="resetar()">Restaurar exemplo</button>
+    </div>
+  </aside>
+
+  <main class="preview-area">
+    <section class="quest-window" id="questWindow">
+      <div class="scanlines"></div>
+
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+
+      <div class="top-line"></div>
+      <div class="bottom-line"></div>
+      <div class="diamond"></div>
+
+      <div class="close-box">
+        <span>×</span>
+      </div>
+
+      <header class="header">
+        <div class="status" id="previewEstado">MISSÃO RECEBIDA</div>
+        <div class="ornament"></div>
+        <div class="quest-title" id="previewTitulo">[ Limpeza dos Corredores ]</div>
+      </header>
+
+      <main class="table" id="previewTabela"></main>
+
+      <footer class="accept" id="previewRodape">
+        <div class="alert-diamond">
+          <span>!</span>
+        </div>
+
+        <div class="accept-text">
+          <div class="accept-title" id="previewRodapeTitulo">ACEITAR MISSÃO?</div>
+          <div class="accept-options">
+            <span class="yes" id="previewRodapeSim">[Y] SIM</span>
+            <span class="no" id="previewRodapeNao">[N] NÃO</span>
+          </div>
+        </div>
+      </footer>
+    </section>
+  </main>
+
+</div>
+
+<script>
+const estados = {
+  recebida: {
+    nome: "MISSÃO RECEBIDA",
+    rodape: "ACEITAR MISSÃO?",
+    sim: "[Y] SIM",
+    nao: "[N] NÃO",
+    campos: [
+      { key: "tipo", label: "Tipo:", icon: "▤", tipo: "input", valor: "Missão de Combate" },
+      { key: "andar", label: "Andar:", icon: "▱", tipo: "input", valor: "1º Andar" },
+      { key: "nivel", label: "Nível recomendado:", icon: "▥", tipo: "input", valor: "1 – 5" },
+      { key: "objetivo", label: "Objetivo:", icon: "◎", tipo: "textarea", valor: "Derrote 10 Goblins nos Corredores da Frente." },
+      { key: "descricao", label: "Descrição:", icon: "▣", tipo: "textarea", valor: "Os corredores que ligam a cidade central às áreas externas estão infestados de goblins.\nElimine-os para garantir a segurança dos viajantes." },
+      { key: "recompensa", label: "Recompensa:", icon: "▰", tipo: "textarea", valor: "350 ZENNIT\nEXP: 600\nItens: Poção de HP (P) x3" },
+      { key: "conclusao", label: "Condição de conclusão:", icon: "⚑", tipo: "textarea", valor: "Derrote 10 Goblins e retorne para entregar." }
+    ]
+  },
+
+  atualizada: {
+    nome: "MISSÃO ATUALIZADA",
+    rodape: "DADOS DA MISSÃO ALTERADOS",
+    sim: "[Y] CONTINUAR",
+    nao: "[N] FECHAR",
+    campos: [
+      { key: "novoObjetivo", label: "Novo objetivo:", icon: "◎", tipo: "textarea", valor: "Siga os rastros até a clareira próxima." },
+      { key: "atualizacao", label: "Atualização:", icon: "▣", tipo: "textarea", valor: "Novos sinais foram encontrados no local.\nA origem da ameaça parece estar mais adiante." }
+    ]
+  },
+
+  concluida: {
+    nome: "MISSÃO CONCLUÍDA",
+    rodape: "RECOMPENSA REGISTRADA",
+    sim: "[Y] CONFIRMAR",
+    nao: "[N] FECHAR",
+    campos: [
+      { key: "resultado", label: "Resultado:", icon: "⚑", tipo: "textarea", valor: "A ameaça foi eliminada e a rota voltou a ficar segura." },
+      { key: "recompensaRecebida", label: "Recompensa recebida:", icon: "▰", tipo: "textarea", valor: "350 ZENNIT\nEXP: 600\nItens: Poção de HP (P) x3" }
+    ]
+  },
+
+  falhada: {
+    nome: "MISSÃO FALHADA",
+    rodape: "MISSÃO ENCERRADA",
+    sim: "[Y] CONFIRMAR",
+    nao: "[N] FECHAR",
+    campos: [
+      { key: "motivo", label: "Motivo:", icon: "▣", tipo: "textarea", valor: "O grupo abandonou a área antes de eliminar a ameaça." },
+      { key: "consequencia", label: "Consequência:", icon: "⚑", tipo: "textarea", valor: "A rota permanece instável e novos encontros hostis podem ocorrer." }
+    ]
+  }
+};
+
+let valores = {};
+
+function iniciar() {
+  Object.keys(estados).forEach(estado => {
+    estados[estado].campos.forEach(campo => {
+      valores[campo.key] = campo.valor;
+    });
+  });
+
+  renderizarCampos();
+  atualizarPreview();
+}
+
+function trocarEstado() {
+  const estado = document.getElementById("estado").value;
+  document.getElementById("rodapeTitulo").value = estados[estado].rodape;
+  document.getElementById("rodapeSim").value = estados[estado].sim;
+  document.getElementById("rodapeNao").value = estados[estado].nao;
+
+  renderizarCampos();
+  atualizarPreview();
+}
+
+function renderizarCampos() {
+  const estado = document.getElementById("estado").value;
+  const area = document.getElementById("campos");
+  area.innerHTML = "";
+
+  estados[estado].campos.forEach(campo => {
+    const label = document.createElement("label");
+    label.innerText = campo.label.replace(":", "");
+
+    let input;
+
+    if (campo.tipo === "textarea") {
+      input = document.createElement("textarea");
+    } else {
+      input = document.createElement("input");
+    }
+
+    input.value = valores[campo.key] ?? campo.valor;
+    input.dataset.key = campo.key;
+    input.addEventListener("input", () => {
+      valores[campo.key] = input.value;
+      atualizarPreview();
+    });
+
+    area.appendChild(label);
+    area.appendChild(input);
+  });
+}
+
+function atualizarPreview() {
+  const estado = document.getElementById("estado").value;
+  const config = estados[estado];
+
+  document.getElementById("previewEstado").innerText = config.nome;
+
+  const titulo = document.getElementById("titulo").value || "Nome da Missão";
+  document.getElementById("previewTitulo").innerText = `[ ${titulo} ]`;
+
+  const tabela = document.getElementById("previewTabela");
+  tabela.innerHTML = "";
+
+  config.campos.forEach((campo, index) => {
+    const row = document.createElement("div");
+    row.className = "row";
+
+    const icon = document.createElement("div");
+    icon.className = "icon";
+    icon.innerText = campo.icon;
+
+    const label = document.createElement("div");
+    label.className = "label";
+    label.innerText = campo.label;
+
+    const value = document.createElement("div");
+    value.className = "value";
+    value.innerHTML = formatarTexto(valores[campo.key] ?? campo.valor);
+
+    const tag = document.createElement("div");
+    tag.className = "tag";
+
+    if (estado === "recebida" && index === 0) {
+      tag.innerText = document.getElementById("tag").value;
+    }
+
+    row.appendChild(icon);
+    row.appendChild(label);
+    row.appendChild(value);
+    row.appendChild(tag);
+
+    tabela.appendChild(row);
+  });
+
+  document.getElementById("previewRodapeTitulo").innerText =
+    document.getElementById("rodapeTitulo").value;
+
+  document.getElementById("previewRodapeSim").innerText =
+    document.getElementById("rodapeSim").value;
+
+  document.getElementById("previewRodapeNao").innerText =
+    document.getElementById("rodapeNao").value;
+}
+
+function formatarTexto(texto) {
+  let seguro = escaparHTML(texto);
+  seguro = seguro.replace(/\bZENNIT\b/g, '<span class="gold">ZENNIT</span>');
+  seguro = seguro.replace(/\n/g, "<br>");
+  return seguro;
+}
+
+function escaparHTML(texto) {
+  return String(texto)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+async function baixarPNG() {
+  if (typeof html2canvas === "undefined") {
+    alert("Não foi possível carregar o gerador de imagem. Verifique sua conexão com a internet e abra o arquivo novamente.");
+    return;
+  }
+
+  const elemento = document.getElementById("questWindow");
+  const qualidade = Number(document.getElementById("qualidade").value || 2);
+
+  await document.fonts.ready;
+
+  const canvas = await html2canvas(elemento, {
+    backgroundColor: null,
+    scale: qualidade,
+    useCORS: true,
+    logging: false
+  });
+
+  const titulo = document.getElementById("titulo").value || "missao";
+  const nomeArquivo = "aincrad-" + slug(titulo) + ".png";
+
+  const link = document.createElement("a");
+  link.download = nomeArquivo;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+function slug(texto) {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function copiarTexto() {
+  const estado = document.getElementById("estado").value;
+  const config = estados[estado];
+  const titulo = document.getElementById("titulo").value;
+
+  let texto = "━━━━━━━━━━━━━━━━━━━━\n";
+  texto += config.nome + "\n";
+  texto += `[ ${titulo} ]\n\n`;
+
+  config.campos.forEach((campo, index) => {
+    texto += campo.label + "\n";
+    texto += (valores[campo.key] ?? campo.valor) + "\n";
+
+    if (estado === "recebida" && index === 0) {
+      texto += "Marcador:\n";
+      texto += document.getElementById("tag").value + "\n";
+    }
+  });
+
+  texto += "━━━━━━━━━━━━━━━━━━━━";
+
+  navigator.clipboard.writeText(texto);
+  alert("Texto copiado.");
+}
+
+function resetar() {
+  valores = {};
+  Object.keys(estados).forEach(estado => {
+    estados[estado].campos.forEach(campo => {
+      valores[campo.key] = campo.valor;
+    });
+  });
+
+  document.getElementById("estado").value = "recebida";
+  document.getElementById("titulo").value = "Limpeza dos Corredores";
+  document.getElementById("tag").value = "Única";
+  document.getElementById("rodapeTitulo").value = "ACEITAR MISSÃO?";
+  document.getElementById("rodapeSim").value = "[Y] SIM";
+  document.getElementById("rodapeNao").value = "[N] NÃO";
+
+  renderizarCampos();
+  atualizarPreview();
+}
+
+iniciar();
+</script>
+
+</body>
+</html>

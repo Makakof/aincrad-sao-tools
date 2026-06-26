@@ -319,7 +319,7 @@
     .row {
       display: grid;
       grid-template-columns: 70px 300px 1fr 120px;
-      align-items: start;
+      align-items: center;
       min-height: 64px;
       border-top: 1px solid rgba(53, 184, 255, .42);
       position: relative;
@@ -572,7 +572,11 @@
         sim: "[Y] SIM",
         nao: "[N] NÃO",
         campos: [
-          { key: "tipo", label: "Tipo:", icon: "▤", tipo: "input", valor: "Missão de Combate" },
+          {
+            key: "tipo", label: "Tipo:", icon: "▤", tipo: "tipoSelect", upper: true,
+            opcoes: ["MISSÃO DE COMBATE", "MISSÃO DE RESGATE", "MISSÃO DE COLETA", "MISSÃO DE ESCOLTA"],
+            valor: "MISSÃO DE COMBATE"
+          },
           { key: "andar", label: "Andar:", icon: "▱", tipo: "input", valor: "1º Andar" },
           { key: "nivel", label: "Nível recomendado:", icon: "▥", tipo: "input", valor: "1 – 5" },
           { key: "objetivo", label: "Objetivo:", icon: "◎", tipo: "textarea", valor: "Derrote 10 Goblins nos Corredores da Frente." },
@@ -645,6 +649,11 @@
       area.innerHTML = "";
 
       estados[estado].campos.forEach(campo => {
+        if (campo.tipo === "tipoSelect") {
+          renderizarCampoTipo(campo, area);
+          return;
+        }
+
         const label = document.createElement("label");
         label.innerText = campo.label.replace(":", "");
 
@@ -666,6 +675,85 @@
         area.appendChild(label);
         area.appendChild(input);
       });
+    }
+
+    function renderizarCampoTipo(campo, area) {
+      const label = document.createElement("label");
+      label.innerText = campo.label.replace(":", "");
+      area.appendChild(label);
+
+      const container = document.createElement("div");
+      area.appendChild(container);
+
+      function mostrarSelect() {
+        container.innerHTML = "";
+
+        const select = document.createElement("select");
+
+        campo.opcoes.forEach(opcao => {
+          const o = document.createElement("option");
+          o.value = opcao;
+          o.text = opcao;
+          select.appendChild(o);
+        });
+
+        const oCustom = document.createElement("option");
+        oCustom.value = "__customizar__";
+        oCustom.text = "Customizar…";
+        select.appendChild(oCustom);
+
+        if (!campo.opcoes.includes(valores[campo.key])) {
+          valores[campo.key] = campo.opcoes[0];
+        }
+        select.value = valores[campo.key];
+
+        select.addEventListener("change", () => {
+          if (select.value === "__customizar__") {
+            valores[campo.key] = "";
+            mostrarTexto();
+            atualizarPreview();
+            return;
+          }
+          valores[campo.key] = select.value;
+          atualizarPreview();
+        });
+
+        container.appendChild(select);
+      }
+
+      function mostrarTexto() {
+        container.innerHTML = "";
+
+        const input = document.createElement("input");
+        input.value = valores[campo.key] ?? "";
+        input.placeholder = "Digite o tipo da missão";
+        input.addEventListener("input", () => {
+          valores[campo.key] = input.value;
+          atualizarPreview();
+        });
+
+        const voltar = document.createElement("button");
+        voltar.type = "button";
+        voltar.innerText = "⟲ Escolher da lista";
+        voltar.style.marginTop = "6px";
+        voltar.style.fontSize = "14px";
+        voltar.style.padding = "7px";
+        voltar.addEventListener("click", () => {
+          valores[campo.key] = campo.opcoes[0];
+          mostrarSelect();
+          atualizarPreview();
+        });
+
+        container.appendChild(input);
+        container.appendChild(voltar);
+        input.focus();
+      }
+
+      if (campo.opcoes.includes(valores[campo.key])) {
+        mostrarSelect();
+      } else {
+        mostrarTexto();
+      }
     }
 
     function atualizarPreview() {
@@ -694,7 +782,9 @@
 
         const value = document.createElement("div");
         value.className = "value";
-        value.innerHTML = formatarTexto(valores[campo.key] ?? campo.valor);
+        let valorExibir = valores[campo.key] ?? campo.valor;
+        if (campo.upper) valorExibir = String(valorExibir).toUpperCase();
+        value.innerHTML = formatarTexto(valorExibir);
 
         const tag = document.createElement("div");
         tag.className = "tag";
@@ -784,7 +874,9 @@
 
       config.campos.forEach((campo, index) => {
         texto += campo.label + "\n";
-        texto += (valores[campo.key] ?? campo.valor) + "\n";
+        let valorTexto = valores[campo.key] ?? campo.valor;
+        if (campo.upper) valorTexto = String(valorTexto).toUpperCase();
+        texto += valorTexto + "\n";
 
         if (estado === "recebida" && index === 0) {
           texto += "Marcador:\n";
